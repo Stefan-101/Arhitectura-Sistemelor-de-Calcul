@@ -1,4 +1,7 @@
 .data
+	num: .long 1
+	copie_eax: .space 4
+	aux: .space 4
 .text
 .global main
 main:
@@ -124,6 +127,104 @@ k:
 	sub %ecx,%ebx
 	movl %ebx,%ecx
 l:
+	movl $15,%eax
+	movl $17,%ebx
+	movl $19,%ecx
+	
+	shl $1,%eax
+	addl %ebx,%eax
+	shl $1,%eax
+	addl %ecx,%eax
+	shr $1,%eax
+m:
+	movl $15,%eax
+	movl $17,%ebx
+	movl $19,%ecx
+	
+	addl %ebx,%eax
+	addl %ecx,%eax
+	shl $4,%eax
+n:
+	movl $15,%eax
+	movl $17,%ebx
+	
+	movl %eax,%ecx
+	shr $4,%ecx
+	shl $4,%ebx
+	addl %ebx,%ecx
+o:
+	movl $1,%eax
+	movl $4294967296,%ebx
+	
+	movl $0xFF00,%ecx
+	and %eax,%ecx
+	
+	movl $0x00FF,%edx
+	and %edx,%ebx
+	
+	addl %ebx,%ecx
+p:
+	movl $15,%eax
+	movl $17,%ebx
+	movl $19,%ecx
+	
+	movl %eax,%edx
+	addl %ecx,%edx
+	addl %ebx,%eax
+	movl %edx,%ebx
+	xor %edx,%edx
+	divl %ebx
+	movl %eax,%ecx
+q:
+	movl $50,%eax
+	movl $17,%ebx
+	movl $19,%ecx
+	
+	mul %ebx
+	xor %edx,%edx
+	div %ecx
+	xor %edx,%edx
+	div %ecx
+r:
+	movl $44,%eax
+	movl $17,%ebx
+	movl $19,%ecx
+	
+	addl %eax,%ebx
+	xchg %eax,%ebx
+	xor %edx,%edx
+	divl %ecx
+	incl %eax
+	mul %ebx
+s:
+	movl $5,%eax
+	movl %eax,copie_eax
+	
+	movl $1,%ebx
+	addl %eax,%ebx
+	movl $2,%ecx
+	
+	et_for:
+	movl $34,%edx
+	cmp %ecx,%edx
+	je iesire_s
+	movl %eax,aux
+	movl num,%eax
+	mull %ecx
+	movl %eax,num
+	movl aux,%eax
+	
+	mull copie_eax
+	movl %eax,aux
+	xor %edx,%edx
+	divl num
+	addl %eax,%ebx
+	movl aux,%eax
+	incl %ecx
+	jmp et_for
+	iesire_s:
+
+
 
 
 
