@@ -1,7 +1,6 @@
 .data
 	num: .long 1
 	copie_eax: .space 4
-	aux: .space 4
 .text
 .global main
 main:
@@ -208,18 +207,18 @@ s:
 	movl $34,%edx
 	cmp %ecx,%edx
 	je iesire_s
-	movl %eax,aux
+	push %eax
 	movl num,%eax
 	mull %ecx
 	movl %eax,num
-	movl aux,%eax
+	pop %eax
 	
 	mull copie_eax
-	movl %eax,aux
+	push %eax
 	xor %edx,%edx
 	divl num
 	addl %eax,%ebx
-	movl aux,%eax
+	pop %eax
 	incl %ecx
 	jmp et_for
 	iesire_s:
