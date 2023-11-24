@@ -6,7 +6,7 @@
 
 atoi:
     push %ebp
-	movl %esp,%ebp
+    movl %esp,%ebp
     push %edi
     push %ebx
 
