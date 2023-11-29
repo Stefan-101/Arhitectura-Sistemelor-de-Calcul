@@ -111,6 +111,7 @@ exit_for_p:
 
                 movl (%esi,%eax,4),%ebx
                 movl %ebx,cel_curenta
+                push %eax
 
                 # calculam numarul de vecini vii
                 movl $0,nr_vecini_vii
@@ -140,12 +141,27 @@ exit_for_p:
                 subl cel_curenta,%edx
                 movl %edx,nr_vecini_vii
 
-                push nr_vecini_vii
-                push $formatPrintfn
-                call printf
-                add $8,%esp
+                # calculam daca celula este 1 sau 0
+                pop %eax
+                movl $0,(%edi,%eax,4)
+                movl $3,%ebx
+                cmp nr_vecini_vii,%ebx
+                je cel_vie
 
-                # TODO scriem in cp_mat celula
+                movl $2,%ebx
+                cmp nr_vecini_vii,%ebx
+                je check_if_alive
+                jmp cel_moarta
+
+                check_if_alive:
+                    xor %ebx,%ebx
+                    cmp %ebx,cel_curenta
+                    je cel_moarta
+                
+                cel_vie:
+                    movl $1,(%edi,%eax,4)
+
+                cel_moarta:
 
                 incl colIndex
                 jmp for_columns_ev
@@ -169,7 +185,7 @@ exit_for_p:
 
             # copiem in matrix elementele din cp_matrix
             movl (%edi,%ecx,4),%edx
-            # movl %edx,(%esi,%ecx,4)
+            movl %edx,(%esi,%ecx,4)
 
             incl %ecx
             jmp for_elem
