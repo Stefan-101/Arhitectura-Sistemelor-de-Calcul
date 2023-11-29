@@ -269,6 +269,7 @@ exit_for_p:
 
             incl %ecx
             jmp for_elem
+
         exit_for_elem:
         decl k
         jmp for_evolutii
@@ -337,7 +338,7 @@ CRIPTARE:
         movl %eax,%ebx
         pop %eax
 
-        # byte-ul criptat se afla sub forma ascii in (%al,%bl) - 2 caractere hex
+        # byte-ul criptat se afla sub forma ASCII in (%al,%bl) - 2 caractere hex
         lea msg_conv,%edi
         pop %ecx
         movl %ecx,%edx
@@ -349,20 +350,24 @@ CRIPTARE:
 
         inc %ecx
         jmp while_msg
+
 exit_while_msg:
+    # adaugam terminatorul nul sirului msg_conv
     lea msg_conv,%edi
     inc %ecx        # in msg_conv avem aditional '0x'
     shl $1,%ecx
     movb $0,(%edi,%ecx,1)
 
-    # test afis
+    # afisam sirul hexa
     push $msg_conv
     push $formatStrPrintf
     call printf 
     addl $8,%esp
 
+    jmp et_exit
+
 DECRIPTARE:
-    # cod decriptare
+    # TODO cod decriptare
 
 et_exit:
     movl $1,%eax
