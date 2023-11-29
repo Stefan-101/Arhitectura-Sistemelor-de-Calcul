@@ -5,17 +5,69 @@
     p: .space 4        # nr de celule vii
     lineIndex: .space 4
     colIndex: .space 4
+    matrixIndex: .space 4
+    number_of_elements: .space 4  
     matrix: .zero 1600
     cp_matrix: .zero 1600
     k: .space 4        # nr de evolutii
+    CRIPT: .space 4
     x: .space 4
     y: .space 4
     cel_curenta: .space 4
     nr_vecini_vii: .space 4
+    msg: .space 23
+    msg_conv: .space 23     # mesaj criptat/decriptat
     formatScanf: .asciz "%d"
+    formatStrScanf: .asciz "%s"
     formatPrintf: .asciz "%d "
+    formatStrPrintf: .asciz "%s\n"
     endl: .asciz "\n"
 .text
+
+halfByte_to_hex:
+    push %ebp
+    movl %esp,%ebp
+
+    movl 8(%ebp),%eax
+    movl $10,%ecx
+    cmp %ecx,%eax
+    jl num
+    jmp letter
+
+    num:
+        addl $48,%eax       # converteste in caracter ascii (numar 0-9)
+
+        pop %ebp
+        ret
+
+    letter:
+        addl $55,%eax       # converteste in caracter ascii (litera A-F)
+
+        pop %ebp
+        ret
+
+hex_to_halfByte:
+    push %ebp
+    movl %esp,%ebp
+
+    movl 8(%esp),%eax
+    movl $65,%ecx
+    cmp %ecx,%eax
+    jge letter_sub
+    jmp num_sub
+
+    letter_sub:
+        subl $55,%eax       # converteste un caracter A-F in binar
+
+        pop %ebp
+        ret
+
+    num_sub:
+        subl $48,%eax       # converteste un caracter 0-9 in binar
+
+        pop %ebp
+        ret
+
 .global main
 main:
     # citim numarul de linii
@@ -32,6 +84,13 @@ main:
     movl n,%eax
     addl $2,%eax
     movl %eax,n_bordat
+
+    # calculam numarul de elemente din matricea bordata
+
+    movl m,%ebx
+    addl $2,%ebx
+    mull %ebx
+    movl %eax,number_of_elements
 
     # citim numarul de celule vii
     push $p
@@ -76,6 +135,20 @@ exit_for_p:
     # citim k (numarul de evolutii)
     push $k
     push $formatScanf
+    call scanf
+    addl $8,%esp
+
+    # citim CRIPT (CRIPT=1 - criptam | CRIPT=0 - decriptam)
+
+    push $CRIPT
+    push $formatScanf
+    call scanf
+    addl $8,%esp
+
+    # citim mesajul
+
+    push $msg
+    push $formatStrScanf
     call scanf
     addl $8,%esp
 
@@ -201,44 +274,95 @@ exit_for_p:
         jmp for_evolutii
 
 exit_for_evolutii:
+    # decidem daca criptam sau decriptam
+    xor %ebx,%ebx
+    cmp CRIPT,%ebx
+    je CRIPTARE
+    jmp DECRIPTARE
 
-    # afisam matricea
-    movl $1,lineIndex
+CRIPTARE:
+    # adaugam '0x' la inceput
+    lea msg_conv,%edi
+    xor %ecx,%ecx
+    movb $48,(%edi,%ecx,1)      # '0'
+    inc %ecx
+    movb $120,(%edi,%ecx,1)     # 'x'
+
+    # parcurgem mesajul ce trebuie criptat
     lea matrix,%esi
-    for_lines:
-        movl lineIndex,%ecx
-        cmp m,%ecx
-        jg et_exit
+    xor %ecx,%ecx
+    movl $0,matrixIndex
+    while_msg:
+        lea msg,%edi
+        xor %ebx,%ebx
+        xor %edx,%edx
+        movb (%edi,%ecx,1),%bl 
+        cmp %edx,%ebx
+        je exit_while_msg
 
-        movl $1,colIndex
-        for_columns:
-            mov colIndex,%ecx
-            cmp n,%ecx
-            jg cont_for_lines
-            
-            # calculam pozitia in matrice
+        # extragem 8 biti din matrice in %eax (in %al)
+        push %ecx
+        push %ebx
+        movl $8,%ecx
+        xor %eax,%eax
+        while_byte:
+            xor %edx,%edx
+            push %eax
+            movl matrixIndex,%eax
+            divl number_of_elements     # pozitia din matrice este in %edx (restul)
+            pop %eax
 
-            mov lineIndex,%eax
-            mull n_bordat
-            addl colIndex,%eax
+            movl (%esi,%edx,4),%ebx     # extragem un element (=un bit) din matrice
+            shl $1,%eax
+            or %ebx,%eax            # adaugam bitul extras in eax
 
-            # afisam elementul din matrice
+            incl matrixIndex
+            loop while_byte
 
-            movl (%esi,%eax,4),%ebx
-            push %ebx
-            push $formatPrintf
-            call printf 
-            addl $8,%esp
+        pop %ebx
 
-            incl colIndex
-            jmp for_columns
-    cont_for_lines:
-        push $endl
-        call printf
-        add $4,%esp
-        incl lineIndex
-        jmp for_lines
+        xorb %al,%bl        # criptam litera (%bl) cu byte-ul extras din matrice (%al)
+        movb %bl,%al
+        
+        shrb $4,%al
+        push %eax
+        call halfByte_to_hex    # convertim prima jumatate de byte intr-o litera hex (in ASCII)
+        addl $4,%esp
 
+        push %eax
+        andb $0x0F,%bl
+        push %ebx
+        call halfByte_to_hex    # convertim a doua jumatate de byte intr-o litera hex (in ASCII)
+        addl $4,%esp
+        movl %eax,%ebx
+        pop %eax
+
+        # byte-ul criptat se afla sub forma ascii in (%al,%bl) - 2 caractere hex
+        lea msg_conv,%edi
+        pop %ecx
+        movl %ecx,%edx
+        inc %edx        # in msg_conv avem aditional '0x'
+        shl $1,%edx     # calculam edx*2
+        movb %al,(%edi,%edx,1)
+        incl %edx
+        movb %bl,(%edi,%edx,1)
+
+        inc %ecx
+        jmp while_msg
+exit_while_msg:
+    lea msg_conv,%edi
+    inc %ecx        # in msg_conv avem aditional '0x'
+    shl $1,%ecx
+    movb $0,(%edi,%ecx,1)
+
+    # test afis
+    push $msg_conv
+    push $formatStrPrintf
+    call printf 
+    addl $8,%esp
+
+DECRIPTARE:
+    # cod decriptare
 
 et_exit:
     movl $1,%eax
