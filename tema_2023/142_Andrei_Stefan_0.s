@@ -141,7 +141,7 @@ exit_for_p:
                 subl cel_curenta,%edx           # scadem celula curenta (celula nu este vecin pt ea insasi)
                 movl %edx,nr_vecini_vii
 
-                # Calculam valoarea celului pt urmatoarea generatie
+                # Calculam valoarea celulei pt urmatoarea generatie
                 # daca o celula are 3 vecini in viata => ea va fi in viata in generatia urmatoare (indiferent de starea actuala)
                 # daca o celula *vie* are 2 vecini in viata => ramane in viata in generatia urmatoare
                 # in orice alt caz celula va fi moarta in urmatoarea generatie
@@ -178,7 +178,7 @@ exit_for_p:
             jmp for_lines_ev
     cont_for_evolutii:
         # mutam cp_matrix in matrix
-        
+
         # calculam cate elemente trebuie sa parcurgem
         movl m,%eax
         movl n,%ebx
