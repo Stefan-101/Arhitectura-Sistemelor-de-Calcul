@@ -1,6 +1,7 @@
 .data
     m: .space 4        # linii
     n: .space 4        # coloane
+    n_bordat: .space 4 # coloane bordate
     p: .space 4        # nr de celule vii
     lineIndex: .space 4
     colIndex: .space 4
@@ -9,8 +10,11 @@
     k: .space 4        # nr de evolutii
     x: .space 4
     y: .space 4
+    cel_curenta: .space 4
+    nr_vecini_vii: .space 4
     formatScanf: .asciz "%d"
     formatPrintf: .asciz "%d "
+    formatPrintfn: .asciz "%d\n"
     endl: .asciz "\n"
 .text
 .global main
@@ -26,6 +30,9 @@ main:
     push $formatScanf
     call scanf
     add $8,%esp
+    movl n,%eax
+    addl $2,%eax
+    movl %eax,n_bordat
 
     # citim numarul de celule vii
     push $p
@@ -59,7 +66,7 @@ main:
         incl y
 
         movl x,%eax
-        mull n
+        mull n_bordat
         addl y,%eax
         movl $1,(%edi,%eax,4)
         inc %ecx
@@ -98,10 +105,47 @@ exit_for_p:
 
                 # calculam pozitia in matrice
                 mov lineIndex,%eax
-                mull n
+                movl n_bordat,%ebx
+                mull %ebx          # mull (n+2)
                 addl colIndex,%eax
 
-                # TODO calculam daca o celula devine 1 sau 0
+                movl (%esi,%eax,4),%ebx
+                movl %ebx,cel_curenta
+
+                # calculam numarul de vecini vii
+                movl $0,nr_vecini_vii
+
+                subl n_bordat,%eax         # vecinul din stanga sus (scadem n+2+1)
+                subl $1,%eax
+
+                movl $3,%ecx
+                for_linie_vecini:
+                    push %ecx
+                    movl $3,%ecx
+                    for_vecini:
+                        movl (%esi,%eax,4),%edx
+                        addl nr_vecini_vii,%edx
+                        movl %edx,nr_vecini_vii
+                        
+                        incl %eax
+                        loop for_vecini
+
+                    addl n,%eax         # eax+=n-1
+                    decl %eax
+
+                    pop %ecx
+                    loop for_linie_vecini
+
+                movl nr_vecini_vii,%edx
+                subl cel_curenta,%edx
+                movl %edx,nr_vecini_vii
+
+                push nr_vecini_vii
+                push $formatPrintfn
+                call printf
+                add $8,%esp
+
+                # TODO scriem in cp_mat celula
 
                 incl colIndex
                 jmp for_columns_ev
@@ -125,7 +169,7 @@ exit_for_p:
 
             # copiem in matrix elementele din cp_matrix
             movl (%edi,%ecx,4),%edx
-            movl %edx,(%esi,%ecx,4)
+            # movl %edx,(%esi,%ecx,4)
 
             incl %ecx
             jmp for_elem
@@ -136,7 +180,6 @@ exit_for_p:
 exit_for_evolutii:
 
     # afisam matricea
-
     movl $1,lineIndex
     lea matrix,%esi
     for_lines:
@@ -153,7 +196,7 @@ exit_for_evolutii:
             # calculam pozitia in matrice
 
             mov lineIndex,%eax
-            mull n
+            mull n_bordat
             addl colIndex,%eax
 
             # afisam elementul din matrice
