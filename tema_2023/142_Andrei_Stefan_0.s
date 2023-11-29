@@ -16,28 +16,24 @@
 .global main
 main:
     # citim numarul de linii
-
     push $m
     push $formatScanf
     call scanf
     add $8,%esp
 
     # citim numarul de coloane
-
     push $n
     push $formatScanf
     call scanf
     add $8,%esp
 
     # citim numarul de celule vii
-
     push $p
     push $formatScanf
     call scanf
     add $8,%esp
 
     # citim celulele vii (matricea)
-
     xor %ecx,%ecx
     lea matrix,%edi
 
@@ -72,14 +68,12 @@ main:
 exit_for_p:
 
     # citim k (numarul de evolutii)
-
     push $k
     push $formatScanf
     call scanf
     addl $8,%esp
 
     # calculam evolutiile
-
     lea matrix,%esi
     lea cp_matrix,%edi
 
@@ -103,7 +97,6 @@ exit_for_p:
                 jg cont_for_lines_ev
 
                 # calculam pozitia in matrice
-
                 mov lineIndex,%eax
                 mull n
                 addl colIndex,%eax
@@ -118,7 +111,7 @@ exit_for_p:
             jmp for_lines_ev
     cont_for_evolutii:
 
-        # TODO matrix=cp_matrix
+        # calculam cate elemente trebuie sa parcurgem
         movl m,%eax
         movl n,%ebx
         addl $2,%eax
@@ -128,8 +121,9 @@ exit_for_p:
         xor %ecx,%ecx
         for_elem:
             cmp %eax,%ecx
-            jg exit_for_elem
+            je exit_for_elem
 
+            # copiem in matrix elementele din cp_matrix
             movl (%edi,%ecx,4),%edx
             movl %edx,(%esi,%ecx,4)
 
