@@ -103,10 +103,10 @@ exit_for_p:
                 cmp n,%ecx
                 jg cont_for_lines_ev
 
-                # calculam pozitia in matrice
+                # calculam pozitia in matricea bordata
                 mov lineIndex,%eax
                 movl n_bordat,%ebx
-                mull %ebx          # mull (n+2)
+                mull %ebx
                 addl colIndex,%eax
 
                 movl (%esi,%eax,4),%ebx
@@ -116,11 +116,11 @@ exit_for_p:
                 # calculam numarul de vecini vii
                 movl $0,nr_vecini_vii
 
-                subl n_bordat,%eax         # vecinul din stanga sus (scadem n+2+1)
+                subl n_bordat,%eax         # pozitia vecinului din stanga sus (scadem n+2+1)
                 subl $1,%eax
 
                 movl $3,%ecx
-                for_linie_vecini:
+                for_linie_vecini:       # parcurgem blocul 3x3 din jurul elementului
                     push %ecx
                     movl $3,%ecx
                     for_vecini:
@@ -131,29 +131,36 @@ exit_for_p:
                         incl %eax
                         loop for_vecini
 
-                    addl n,%eax         # eax+=n-1
+                    addl n,%eax         # eax+=n-1 - mergem pe urmatoarea linie din blocul 3x3
                     decl %eax
 
                     pop %ecx
                     loop for_linie_vecini
 
                 movl nr_vecini_vii,%edx
-                subl cel_curenta,%edx
+                subl cel_curenta,%edx           # scadem celula curenta (celula nu este vecin pt ea insasi)
                 movl %edx,nr_vecini_vii
 
-                # calculam daca celula este 1 sau 0
+                # Calculam valoarea celului pt urmatoarea generatie
+                # daca o celula are 3 vecini in viata => ea va fi in viata in generatia urmatoare (indiferent de starea actuala)
+                # daca o celula *vie* are 2 vecini in viata => ramane in viata in generatia urmatoare
+                # in orice alt caz celula va fi moarta in urmatoarea generatie
+                
+                # verificam daca are 3 vecini in viata
                 pop %eax
                 movl $0,(%edi,%eax,4)
                 movl $3,%ebx
                 cmp nr_vecini_vii,%ebx
                 je cel_vie
 
+                # verificam daca are 2 vecini in viata
                 movl $2,%ebx
                 cmp nr_vecini_vii,%ebx
                 je check_if_alive
                 jmp cel_moarta
 
                 check_if_alive:
+                    # verificam daca celula este in viata (si are 2 vecini)
                     xor %ebx,%ebx
                     cmp %ebx,cel_curenta
                     je cel_moarta
@@ -170,7 +177,8 @@ exit_for_p:
             incl lineIndex
             jmp for_lines_ev
     cont_for_evolutii:
-
+        # mutam cp_matrix in matrix
+        
         # calculam cate elemente trebuie sa parcurgem
         movl m,%eax
         movl n,%ebx
