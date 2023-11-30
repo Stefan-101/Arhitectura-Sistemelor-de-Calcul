@@ -15,8 +15,8 @@
     y: .space 4
     cel_curenta: .space 4
     nr_vecini_vii: .space 4
-    msg: .space 23
-    msg_conv: .space 23         # mesaj criptat/decriptat
+    msg: .space 25
+    msg_conv: .space 25         # mesaj criptat/decriptat
     formatScanf: .asciz "%d"
     formatStrScanf: .asciz "%s"
     formatPrintf: .asciz "%d "
