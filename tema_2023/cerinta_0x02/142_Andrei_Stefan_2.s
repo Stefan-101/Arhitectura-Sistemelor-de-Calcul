@@ -18,7 +18,6 @@
     fd: .space 4                # file descriptor
     endl: .asciz "\n"  
     buff: .zero 64              # buffer
-    formatPrintf: .asciz "%d " 
 .text
 
 # Functia atoi_impl este o implementare a functiei atoi
@@ -134,7 +133,6 @@ cif_to_ascii:
     pop %ebp
     ret
     
-
 .global main
 main:
     # deschidem fisierul pentru citire
