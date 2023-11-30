@@ -1,9 +1,23 @@
 .data
+    m: .space 4                 # linii
+    n: .space 4                 # coloane
+    n_bordat: .space 4          # coloane bordate
+    p: .space 4                 # nr de celule vii
+    lineIndex: .space 4
+    colIndex: .space 4
+    matrix: .zero 1600
+    cp_matrix: .zero 1600
+    k: .space 4                 # nr de evolutii
+    x: .space 4
+    y: .space 4
+    cel_curenta: .space 4
+    nr_vecini_vii: .space 4
+
     filein: .asciz "in.txt"
     fileout: .asciz "out.txt"
-    fd: .space 4            # file descriptor
-    buff: .zero 1024        # buffer
-    endl: .ascii "\n"       
+    fd: .space 4                # file descriptor
+    endl: .ascii "\n"   
+    buff: .zero 64              # buffer
 .text
 
 # Functia atoi_impl este o implementare a functiei atoi
@@ -79,9 +93,11 @@ readf:
         jmp while_not_eol
 
     exit_while_not_eol:
+    # adaugam terminatorul nul
+    movb $0,0(%ecx)
+
     pop %ebx
     pop %ebp
-
     ret
 
 # Functia writef scrie intr-un fisier o anumita lungime dintr-un buffer
@@ -117,86 +133,290 @@ cif_to_ascii:
 
 .global main
 main:
-
-    push $1
-    call cif_to_ascii
-    pop %ebx
-bp0:
-
-# open file for reading
+    # deschidem fisierul pentru citire
     movl $5,%eax
-    movl $filename, %ebx
+    movl $filein, %ebx
     movl $0,%ecx
     movl $0666,%edx
     int $0x80
 
-    movl %eax,fd
+    movl %eax,fd        # salvam file descriptor
 
-    # read one number from file using function
-
+    # citim numarul de linii
     push $buff
     push fd
     call readf
     addl $8,%esp
 
-    # transform number to integer from str
-
-    push $buff 
+    push $buff          # transformam in long numarul citit
     call atoi_impl
     addl $4,%esp
-bp1: # eax = number
+    movl %eax,m
 
-    # close input file
+    # citim numarul de coloane
+    push $buff
+    push fd
+    call readf 
+    addl $8,%esp
+
+    push $buff
+    call atoi_impl
+    addl $4,%esp
+    movl %eax,n
+
+    addl $2,%eax
+    movl %eax,n_bordat
+
+    # citim numarul de celule vii
+    push $buff
+    push fd
+    call readf 
+    addl $8,%esp
+
+    push $buff
+    call atoi_impl
+    addl $4,%esp
+    movl %eax,p
+
+    # citim celulele vii (matricea)
+    xor %ecx,%ecx
+    lea matrix,%edi
+
+    for_p:
+        cmp p,%ecx
+        je exit_for_p
+
+        push %ecx           # salvam valoarea lui ecx
+
+        push $buff          # citim valoarea lui x
+        push fd
+        call readf 
+        addl $8,%esp
+
+        push $buff          # transformam valoarea lui x in long
+        call atoi_impl
+        addl $4,%esp
+        movl %eax,x
+
+        push $buff          # citim valoarea lui y
+        push fd
+        call readf 
+        addl $8,%esp
+
+        push $buff          # transformam valoarea lui y in long
+        call atoi_impl
+        addl $4,%esp
+        movl %eax,y
+
+        pop %ecx        # restauram valoarea lui ecx
+
+        incl x          # matricea este bordata => coord++
+        incl y
+
+        movl x,%eax
+        mull n_bordat
+        addl y,%eax
+        movl $1,(%edi,%eax,4)
+        inc %ecx
+        jmp for_p
+
+exit_for_p:
+
+    # citim k (numarul de evolutii)
+    push $buff
+    push fd
+    call readf 
+    addl $8,%esp
+
+    push $buff
+    call atoi_impl
+    addl $4,%esp
+    movl %eax,k
+
+    # inchidem fisierul de intrare
     movl $6,%eax
     movl fd,%ebx
     int $0x80
 
-    # open file for writing
+    # calculam evolutiile
+    lea matrix,%esi
+    lea cp_matrix,%edi
+
+    for_evolutii:
+        xor %ecx,%ecx
+        cmp k,%ecx
+        je exit_for_evolutii
+
+        movl $1,lineIndex
+
+        for_lines_ev:
+            movl lineIndex,%ecx
+            cmp m,%ecx
+            jg cont_for_evolutii
+
+            movl $1,colIndex
+
+            for_columns_ev:
+                movl colIndex,%ecx
+                cmp n,%ecx
+                jg cont_for_lines_ev
+
+                # calculam pozitia in matricea bordata
+                mov lineIndex,%eax
+                movl n_bordat,%ebx
+                mull %ebx
+                addl colIndex,%eax
+
+                movl (%esi,%eax,4),%ebx
+                movl %ebx,cel_curenta
+                push %eax
+
+                # calculam numarul de vecini vii
+                movl $0,nr_vecini_vii
+
+                subl n_bordat,%eax         # pozitia vecinului din stanga sus (scadem n+2+1)
+                subl $1,%eax
+
+                movl $3,%ecx
+                for_linie_vecini:       # parcurgem blocul 3x3 din jurul elementului
+                    push %ecx
+                    movl $3,%ecx
+                    for_vecini:
+                        movl (%esi,%eax,4),%edx
+                        addl nr_vecini_vii,%edx
+                        movl %edx,nr_vecini_vii
+                        
+                        incl %eax
+                        loop for_vecini
+
+                    addl n,%eax         # eax+=n-1 - mergem pe urmatoarea linie din blocul 3x3
+                    decl %eax
+
+                    pop %ecx
+                    loop for_linie_vecini
+
+                movl nr_vecini_vii,%edx
+                subl cel_curenta,%edx           # scadem celula curenta (celula nu este vecin pt ea insasi)
+                movl %edx,nr_vecini_vii
+
+                # Calculam valoarea celulei pt urmatoarea generatie
+                # daca o celula are 3 vecini in viata => ea va fi in viata in generatia urmatoare (indiferent de starea actuala)
+                # daca o celula *vie* are 2 vecini in viata => ramane in viata in generatia urmatoare
+                # in orice alt caz celula va fi moarta in urmatoarea generatie
+                
+                # verificam daca are 3 vecini in viata
+                pop %eax
+                movl $0,(%edi,%eax,4)
+                movl $3,%ebx
+                cmp nr_vecini_vii,%ebx
+                je cel_vie
+
+                # verificam daca are 2 vecini in viata
+                movl $2,%ebx
+                cmp nr_vecini_vii,%ebx
+                je check_if_alive
+                jmp cel_moarta
+
+                check_if_alive:
+                    # verificam daca celula este in viata (si are 2 vecini)
+                    xor %ebx,%ebx
+                    cmp %ebx,cel_curenta
+                    je cel_moarta
+                
+                cel_vie:
+                    movl $1,(%edi,%eax,4)
+
+                cel_moarta:
+
+                incl colIndex
+                jmp for_columns_ev
+                
+        cont_for_lines_ev:
+            incl lineIndex
+            jmp for_lines_ev
+    cont_for_evolutii:
+        # mutam cp_matrix in matrix
+
+        # calculam cate elemente trebuie sa parcurgem
+        movl m,%eax
+        movl n,%ebx
+        addl $2,%eax
+        addl $2,%ebx
+        mull %ebx
+
+        xor %ecx,%ecx
+        for_elem:
+            cmp %eax,%ecx
+            je exit_for_elem
+
+            # copiem in matrix elementele din cp_matrix
+            movl (%edi,%ecx,4),%edx
+            movl %edx,(%esi,%ecx,4)
+
+            incl %ecx
+            jmp for_elem
+        exit_for_elem:
+        decl k
+        jmp for_evolutii
+
+exit_for_evolutii:
+    # deschidem fisierul de iesire
     movl $5,%eax
-    movl $filenameo, %ebx
-    movl $0x41,%ecx     # O_CREAT and O_WRONLY flag
+    movl $fileout, %ebx
+    movl $0x41,%ecx     # valoarea inglobeaza flag-urile O_CREAT si O_WRONLY
     movl $0666,%edx
     int $0x80
     movl %eax,fd
-bp2:
-# test print
 
-push $buff
-push $formatPrintf
-call printf
-addl $8,%esp
+    # afisam matricea
+    movl $1,lineIndex
+    lea matrix,%esi
+    lea buff,%edi
+    for_lines:
+        movl lineIndex,%ecx
+        cmp m,%ecx
+        jg et_exit
 
-# write in opened file
+        movl $1,colIndex
+        for_columns:
+            mov colIndex,%ecx
+            cmp n,%ecx
+            jg cont_for_lines
+            
+            # calculam pozitia in matrice
 
-    movl $4,%eax
-    movl fd,%ebx
-    movl $buff,%ecx
-    movl $2,%edx
-    int $0x80
+            mov lineIndex,%eax
+            mull n_bordat
+            addl colIndex,%eax
 
-# write using function
+            # afisam elementul din matrice
 
-    push $2
-    push $buff 
-    push fd 
-    call writef 
-    addl $12,%esp
+            movl (%esi,%eax,4),%ebx
 
-# write endol
+            push %ebx
+            call cif_to_ascii
+            addl $4,%esp
 
-    push $1
-    push $endl
-    push fd
-    call writef 
-    addl $12,%esp
+            movb %al,0(%edi)
+            movb $0x20,1(%edi)
 
-# close file
+            push $2
+            push $buff 
+            push fd 
+            call writef 
+            addl $12,%esp
 
-    movl $6,%eax
-    movl fd,%ebx
-    int $0x80
+            incl colIndex
+            jmp for_columns
+    cont_for_lines:
+        push $1
+        push $endl 
+        push fd 
+        call writef 
+        addl $12,%esp
 
-
+        incl lineIndex
+        jmp for_lines
 
 et_exit:
     movl $1,%eax
