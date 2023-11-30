@@ -1,13 +1,13 @@
 .data
-    m: .space 4        # linii
-    n: .space 4        # coloane
-    n_bordat: .space 4 # coloane bordate
-    p: .space 4        # nr de celule vii
+    m: .space 4             # linii
+    n: .space 4             # coloane
+    n_bordat: .space 4      # coloane bordate
+    p: .space 4             # nr de celule vii
     lineIndex: .space 4
     colIndex: .space 4
     matrix: .zero 1600
     cp_matrix: .zero 1600
-    k: .space 4        # nr de evolutii
+    k: .space 4             # nr de evolutii
     x: .space 4
     y: .space 4
     cel_curenta: .space 4

@@ -369,12 +369,13 @@ DECRIPTARE:
         lea msg,%edi
         xor %eax,%eax
         push %ecx
-        shl $1,%ecx             # pargurgem msg 2 cate 2 caractere (1 byte)
+        shl $1,%ecx             # pargurgem msg 2 cate 2 caractere (cate 1 byte)
         movb (%edi,%ecx,1),%al
         xor %edx,%edx
         cmp %edx,%eax
         je exit_while_decript
 
+        # prima litera a fost extrasa in %al
         # extragem a doua litera din msg (pt a forma un byte complet)
         incl %ecx
         xor %ebx,%ebx
@@ -383,16 +384,16 @@ DECRIPTARE:
         # convertim pe rand fiecare litera hexa in 4 biti
 
         push %eax
-        call hex_to_halfByte
+        call hex_to_halfByte        # covertim prima litera in 4 biti (%al)
         add $4,%esp
 
         push %eax
         push %ebx
-        call hex_to_halfByte
+        call hex_to_halfByte        # covertim a doua litera in 4 biti (%bl)
         addl $4,%esp
         movl %eax,%ebx
         pop %eax
-
+        
         shl $4,%al
         or %al,%bl      # obtinem in %bl 1 byte din msg
 
@@ -418,20 +419,20 @@ DECRIPTARE:
         pop %ebx
         xorb %bl,%al
 
+        # byte-ul decriptat este codul ASCII al unui caracter
         lea msg_conv,%edi
         pop %ecx
-        decl %ecx
+        decl %ecx                   # -1 pt ca '0x' nu face parte din mesaj
         movb %al,(%edi,%ecx,1)
         incl %ecx
 
-        bp1:
         incl %ecx
         jmp while_decript
 exit_while_decript:
     # adaugam terminatorul nul
     lea msg_conv,%edi
     pop %ecx
-    decl %ecx
+    decl %ecx                   # -1 pt ca '0x' nu face parte din mesaj
     movb $0,(%edi,%ecx,1)
 
     # afisam mesajul
