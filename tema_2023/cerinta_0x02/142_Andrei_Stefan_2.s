@@ -87,10 +87,10 @@ readf:
         # verificam daca byte-ul citit este '\n' sau byte-ul '0' (EOF)
         movb 0(%ecx),%al
         incl %ecx
-        movb $0x0A,%dl 
+        movb $0x0A,%dl          # codificare pentru '\n'
         cmp %dl,%al
         je exit_while_not_eol
-        xor %edx,%edx
+        xor %edx,%edx           # byte-ul '0'
         cmp %dl,%al
         je exit_while_not_eol
         jmp while_not_eol
@@ -138,7 +138,7 @@ main:
     # deschidem fisierul pentru citire
     movl $5,%eax
     movl $filein, %ebx
-    movl $0,%ecx
+    movl $0,%ecx        # read-only
     movl $0666,%edx
     int $0x80
 
