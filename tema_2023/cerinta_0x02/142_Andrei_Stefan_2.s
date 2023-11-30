@@ -34,8 +34,7 @@ atoi_impl:
     et_while:
         xor %ebx,%ebx
         movb (%edi,%ecx,1),%bl   # verificare sfarsit sir
-        xor %edx,%edx
-        cmp %ebx,%edx
+        cmp %ebx,$0
         je exit_while
 
         movl $'0',%edx        # verificare daca chr e cifra
