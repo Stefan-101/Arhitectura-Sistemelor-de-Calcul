@@ -151,8 +151,7 @@ exit_for_p:
     lea cp_matrix,%edi
 
     for_evolutii:
-        xor %ecx,%ecx
-        cmp k,%ecx
+        cmpl $0,k
         je exit_for_evolutii
 
         movl $1,lineIndex
@@ -227,8 +226,7 @@ exit_for_p:
 
                 check_if_alive:
                     # verificam daca celula este in viata (si are 2 vecini)
-                    xor %ebx,%ebx
-                    cmp %ebx,cel_curenta
+                    cmpl $0,cel_curenta
                     je cel_moarta
                 
                 cel_vie:
@@ -270,8 +268,7 @@ exit_for_p:
 
 exit_for_evolutii:
     # decidem daca criptam sau decriptam
-    xor %ebx,%ebx
-    cmp CRIPT,%ebx
+    cmpl $0,CRIPT
     je CRIPTARE
     jmp DECRIPTARE
 
@@ -290,9 +287,8 @@ CRIPTARE:
     while_msg:
         lea msg,%edi
         xor %ebx,%ebx
-        xor %edx,%edx
         movb (%edi,%ecx,1),%bl 
-        cmp %edx,%ebx
+        cmpl $0,%ebx
         je exit_while_msg
 
         # extragem 8 biti din matrice in %eax (in %al)
@@ -371,8 +367,7 @@ DECRIPTARE:
         push %ecx
         shl $1,%ecx             # pargurgem msg 2 cate 2 caractere (cate 1 byte)
         movb (%edi,%ecx,1),%al
-        xor %edx,%edx
-        cmp %edx,%eax
+        cmpl $0,%eax
         je exit_while_decript
 
         # prima litera a fost extrasa in %al

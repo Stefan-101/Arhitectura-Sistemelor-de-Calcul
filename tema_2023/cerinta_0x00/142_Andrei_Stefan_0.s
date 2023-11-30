@@ -84,8 +84,7 @@ exit_for_p:
     lea cp_matrix,%edi
 
     for_evolutii:
-        xor %ecx,%ecx
-        cmp k,%ecx
+        cmpl $0,k
         je exit_for_evolutii
 
         movl $1,lineIndex
@@ -160,8 +159,7 @@ exit_for_p:
 
                 check_if_alive:
                     # verificam daca celula este in viata (si are 2 vecini)
-                    xor %ebx,%ebx
-                    cmp %ebx,cel_curenta
+                    cmpl $0,cel_curenta
                     je cel_moarta
                 
                 cel_vie:
