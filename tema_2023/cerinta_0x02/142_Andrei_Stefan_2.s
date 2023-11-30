@@ -364,7 +364,7 @@ exit_for_evolutii:
     # deschidem fisierul de iesire
     movl $5,%eax
     movl $fileout, %ebx
-    movl $0x41,%ecx     # flag-urile O_CREAT si O_WRONLY
+    movl $0x241,%ecx     # 0x241 reprezinta flag-urile: O_CREAT, O_WRONLY si O_TRUNC
     movl $0666,%edx
     int $0x80
     movl %eax,fd
