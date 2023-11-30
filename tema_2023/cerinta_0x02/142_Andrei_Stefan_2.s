@@ -16,8 +16,9 @@
     filein: .asciz "in.txt"
     fileout: .asciz "out.txt"
     fd: .space 4                # file descriptor
-    endl: .ascii "\n"   
+    endl: .asciz "\n"  
     buff: .zero 64              # buffer
+    formatPrintf: .asciz "%d " 
 .text
 
 # Functia atoi_impl este o implementare a functiei atoi
@@ -84,10 +85,13 @@ readf:
         pop %ecx
         pop %ebx
 
-        # verificam daca byte-ul citit este '\n'
+        # verificam daca byte-ul citit este '\n' sau byte-ul '0' (EOF)
         movb 0(%ecx),%al
         incl %ecx
         movb $0x0A,%dl 
+        cmp %dl,%al
+        je exit_while_not_eol
+        xor %edx,%edx
         cmp %dl,%al
         je exit_while_not_eol
         jmp while_not_eol
@@ -159,7 +163,7 @@ main:
     call readf 
     addl $8,%esp
 
-    push $buff
+    push $buff          # transformam in long numarul citit
     call atoi_impl
     addl $4,%esp
     movl %eax,n
@@ -173,7 +177,7 @@ main:
     call readf 
     addl $8,%esp
 
-    push $buff
+    push $buff          # transformam in long numarul citit
     call atoi_impl
     addl $4,%esp
     movl %eax,p
@@ -221,14 +225,13 @@ main:
         jmp for_p
 
 exit_for_p:
-
     # citim k (numarul de evolutii)
     push $buff
     push fd
     call readf 
     addl $8,%esp
 
-    push $buff
+    push $buff          # transformam in long numarul citit
     call atoi_impl
     addl $4,%esp
     movl %eax,k
@@ -363,7 +366,7 @@ exit_for_evolutii:
     # deschidem fisierul de iesire
     movl $5,%eax
     movl $fileout, %ebx
-    movl $0x41,%ecx     # valoarea inglobeaza flag-urile O_CREAT si O_WRONLY
+    movl $0x41,%ecx     # flag-urile O_CREAT si O_WRONLY
     movl $0666,%edx
     int $0x80
     movl %eax,fd
@@ -393,14 +396,14 @@ exit_for_evolutii:
 
             movl (%esi,%eax,4),%ebx
 
-            push %ebx
+            push %ebx               # transformam elementul in cod ASCII
             call cif_to_ascii
             addl $4,%esp
 
-            movb %al,0(%edi)
+            movb %al,0(%edi)        # punem in buffer codul ASCII al elem si spatiu
             movb $0x20,1(%edi)
 
-            push $2
+            push $2                 # afisam 2 bytes din buffer
             push $buff 
             push fd 
             call writef 
@@ -409,7 +412,7 @@ exit_for_evolutii:
             incl colIndex
             jmp for_columns
     cont_for_lines:
-        push $1
+        push $1                 # afisam '\n'
         push $endl 
         push fd 
         call writef 
@@ -419,6 +422,11 @@ exit_for_evolutii:
         jmp for_lines
 
 et_exit:
+    # inchidem fisierul
+    movl $6,%eax
+    movl fd,%ebx 
+    int $0x80
+
     movl $1,%eax
     xor %ebx,%ebx
     int $0x80
