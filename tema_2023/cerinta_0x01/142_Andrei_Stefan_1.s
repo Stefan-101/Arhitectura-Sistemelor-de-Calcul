@@ -1,22 +1,22 @@
 .data
-    m: .space 4        # linii
-    n: .space 4        # coloane
-    n_bordat: .space 4 # coloane bordate
-    p: .space 4        # nr de celule vii
+    m: .space 4                 # linii
+    n: .space 4                 # coloane
+    n_bordat: .space 4          # coloane bordate
+    p: .space 4                 # nr de celule vii
     lineIndex: .space 4
     colIndex: .space 4
     matrixIndex: .space 4
     number_of_elements: .space 4  
     matrix: .zero 1600
     cp_matrix: .zero 1600
-    k: .space 4        # nr de evolutii
+    k: .space 4                 # nr de evolutii
     CRIPT: .space 4
     x: .space 4
     y: .space 4
     cel_curenta: .space 4
     nr_vecini_vii: .space 4
     msg: .space 23
-    msg_conv: .space 23     # mesaj criptat/decriptat
+    msg_conv: .space 23         # mesaj criptat/decriptat
     formatScanf: .asciz "%d"
     formatStrScanf: .asciz "%s"
     formatPrintf: .asciz "%d "
@@ -36,13 +36,10 @@ halfByte_to_hex:
 
     num:
         addl $48,%eax       # converteste in caracter ascii (numar 0-9)
-
         pop %ebp
         ret
-
     letter:
         addl $55,%eax       # converteste in caracter ascii (litera A-F)
-
         pop %ebp
         ret
 
@@ -58,13 +55,10 @@ hex_to_halfByte:
 
     letter_sub:
         subl $55,%eax       # converteste un caracter A-F in binar
-
         pop %ebp
         ret
-
     num_sub:
         subl $48,%eax       # converteste un caracter 0-9 in binar
-
         pop %ebp
         ret
 
@@ -367,7 +361,84 @@ exit_while_msg:
     jmp et_exit
 
 DECRIPTARE:
-    # TODO cod decriptare
+    lea matrix,%esi
+
+    movl $0,matrixIndex
+    movl $1,%ecx
+    while_decript:
+        lea msg,%edi
+        xor %eax,%eax
+        push %ecx
+        shl $1,%ecx             # pargurgem msg 2 cate 2 caractere (1 byte)
+        movb (%edi,%ecx,1),%al
+        xor %edx,%edx
+        cmp %edx,%eax
+        je exit_while_decript
+
+        # extragem a doua litera din msg (pt a forma un byte complet)
+        incl %ecx
+        xor %ebx,%ebx
+        movb (%edi,%ecx,1),%bl
+
+        # convertim pe rand fiecare litera hexa in 4 biti
+
+        push %eax
+        call hex_to_halfByte
+        add $4,%esp
+
+        push %eax
+        push %ebx
+        call hex_to_halfByte
+        addl $4,%esp
+        movl %eax,%ebx
+        pop %eax
+
+        shl $4,%al
+        or %al,%bl      # obtinem in %bl 1 byte din msg
+
+        # extragem din matrice 1 byte in %eax (in %al)
+        movl $8,%ecx
+        xor %eax,%eax
+        push %ebx
+        while_byte_decript:
+            xor %edx,%edx
+            push %eax
+            movl matrixIndex,%eax
+            divl number_of_elements     # pozitia din matrice este in %edx (restul)
+            pop %eax
+
+            movl (%esi,%edx,4),%ebx     # extragem un element (=un bit) din matrice
+            shl $1,%eax
+            or %ebx,%eax            # adaugam bitul extras in eax
+
+            incl matrixIndex
+            loop while_byte_decript
+        
+        # decriptam byte-ul din msg (%bl) cu byte-ul din cheie (%al)
+        pop %ebx
+        xorb %bl,%al
+
+        lea msg_conv,%edi
+        pop %ecx
+        decl %ecx
+        movb %al,(%edi,%ecx,1)
+        incl %ecx
+
+        bp1:
+        incl %ecx
+        jmp while_decript
+exit_while_decript:
+    # adaugam terminatorul nul
+    lea msg_conv,%edi
+    pop %ecx
+    decl %ecx
+    movb $0,(%edi,%ecx,1)
+
+    # afisam mesajul
+    push $msg_conv
+    push $formatStrPrintf
+    call printf
+    addl $8,%esp
 
 et_exit:
     movl $1,%eax
