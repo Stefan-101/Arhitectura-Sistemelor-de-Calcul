@@ -70,9 +70,6 @@ readf:
     movl 12(%ebp),%ecx      # buffer address
     
     while_not_eol:      # while not end of line
-        push %ebx
-        push %ecx
-
         # efectuam citirea unui byte din fisier folosind syscall in urmatoarea
         # locatie din buffer
         movl $3,%eax
@@ -81,17 +78,13 @@ readf:
         movl $1,%edx
         int $0x80
 
-        pop %ecx
-        pop %ebx
-
         # verificam daca byte-ul citit este '\n' sau byte-ul '0' (EOF)
         movb 0(%ecx),%al
         incl %ecx
         movb $0x0A,%dl          # codificare pentru '\n'
         cmp %dl,%al
         je exit_while_not_eol
-        xor %edx,%edx           # byte-ul '0'
-        cmp %dl,%al
+        cmp $0,%al              # byte-ul '0'
         je exit_while_not_eol
         jmp while_not_eol
 
@@ -117,7 +110,7 @@ writef:
     int $0x80
 
     pop %ebx
-    pop %ebx
+    pop %ebp
 
     ret
 
@@ -139,7 +132,7 @@ main:
     movl $5,%eax
     movl $filein, %ebx
     movl $0,%ecx        # read-only
-    movl $0666,%edx
+    movl $0666,%edx     # permisiuni read-write pentru owner/grup/altii
     int $0x80
 
     movl %eax,fd        # salvam file descriptor
@@ -365,7 +358,7 @@ exit_for_evolutii:
     movl $5,%eax
     movl $fileout, %ebx
     movl $0x241,%ecx     # 0x241 reprezinta flag-urile: O_CREAT, O_WRONLY si O_TRUNC
-    movl $0666,%edx
+    movl $0666,%edx      # permisiuni read-write pentru owner/grup/altii
     int $0x80
     movl %eax,fd
 
