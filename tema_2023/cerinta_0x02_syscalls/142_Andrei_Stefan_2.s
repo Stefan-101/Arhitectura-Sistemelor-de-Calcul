@@ -1,58 +1,176 @@
 .data
-    m: .space 4             # linii
-    n: .space 4             # coloane
-    n_bordat: .space 4      # coloane bordate
-    p: .space 4             # nr de celule vii
+    m: .space 4                 # linii
+    n: .space 4                 # coloane
+    n_bordat: .space 4          # coloane bordate
+    p: .space 4                 # nr de celule vii
     lineIndex: .space 4
     colIndex: .space 4
     matrix: .zero 1600
     cp_matrix: .zero 1600
-    k: .space 4             # nr de evolutii
+    k: .space 4                 # nr de evolutii
     x: .space 4
     y: .space 4
     cel_curenta: .space 4
     nr_vecini_vii: .space 4
-    fp: .space 4            # file pointer
+
     filein: .asciz "in.txt"
     fileout: .asciz "out.txt"
-    read_mode: .asciz "r"
-    write_mode: .asciz "w"
-    formatScanf: .asciz "%d"
-    formatPrintf: .asciz "%d "
-    endl: .asciz "\n"
+    fd: .space 4                # file descriptor
+    endl: .asciz "\n"  
+    buff: .zero 64              # buffer
 .text
+
+# Functia atoi_impl este o implementare a functiei atoi
+atoi_impl:
+    push %ebp
+    movl %esp,%ebp
+    push %edi
+    push %ebx
+
+    movl 8(%ebp),%edi
+    xor %eax,%eax
+    xor %ecx,%ecx
+
+    et_while:
+        xor %ebx,%ebx
+        movb (%edi,%ecx,1),%bl   # verificare sfarsit sir
+        cmp $0,%ebx
+        je exit_while
+
+        movl $'0',%edx        # verificare daca chr e cifra
+        cmp %edx,%ebx
+        jl exit_while
+        movl $'9',%edx
+        cmp %edx,%ebx
+        jg exit_while
+
+        subl $'0',%ebx        # transformam ebx in int si il adaugam
+        movl $10,%edx
+        mull %edx
+        addl %ebx,%eax
+
+        inc %ecx
+        jmp et_while
+
+exit_while:
+    pop %ebx
+    pop %edi
+    pop %ebp
+    ret
+
+# Functia readf citeste intr-un buffer specificat o linie dintr-un fisier
+# Parametrii: file_descriptor, buffer_address
+readf:
+    push %ebp
+    movl %esp,%ebp
+    push %ebx
+
+    movl 8(%ebp),%ebx       # file descriptor
+    movl 12(%ebp),%ecx      # buffer address
+    
+    while_not_eol:      # while not end of line
+        # efectuam citirea unui byte din fisier folosind syscall in urmatoarea
+        # locatie din buffer
+        movl $3,%eax
+        # ebx = fd
+        # ecx = buff address
+        movl $1,%edx
+        int $0x80
+
+        # verificam daca byte-ul citit este '\n' sau byte-ul '0' (EOF)
+        movb 0(%ecx),%al
+        incl %ecx
+        movb $0x0A,%dl          # codificare pentru '\n'
+        cmp %dl,%al
+        je exit_while_not_eol
+        cmp $0,%al              # byte-ul '0'
+        je exit_while_not_eol
+        jmp while_not_eol
+
+    exit_while_not_eol:
+    # adaugam terminatorul nul
+    movb $0,0(%ecx)
+
+    pop %ebx
+    pop %ebp
+    ret
+
+# Functia writef scrie intr-un fisier o anumita lungime dintr-un buffer
+# Parametrii: file_descriptor, buffer_address, length
+writef:
+    push %ebp
+    movl %esp,%ebp
+    push %ebx
+
+    movl $4,%eax
+    movl 8(%ebp),%ebx       # file descriptor
+    movl 12(%ebp),%ecx      # buffer address
+    movl 16(%ebp),%edx      # length
+    int $0x80
+
+    pop %ebx
+    pop %ebp
+
+    ret
+
+# Functia cif_to_ascii primeste ca parametru 0 sau 1 (.long) si returneaza
+# codul ascii pt 0 sau 1 respectiv
+cif_to_ascii:
+    push %ebp
+    movl %esp,%ebp
+
+    movl 8(%ebp),%eax
+    addl $48,%eax
+
+    pop %ebp
+    ret
+    
 .global main
 main:
-    # deschidem fisierul de intrare
-    push $read_mode
-    push $filein
-    call fopen
-    addl $8,%esp
-    movl %eax,fp
+    # deschidem fisierul pentru citire
+    movl $5,%eax
+    movl $filein, %ebx
+    movl $0,%ecx        # read-only
+    movl $0666,%edx     # permisiuni read-write pentru owner/grup/altii
+    int $0x80
+
+    movl %eax,fd        # salvam file descriptor
 
     # citim numarul de linii
-    push $m
-    push $formatScanf
-    push fp
-    call fscanf
-    add $12,%esp
+    push $buff
+    push fd
+    call readf
+    addl $8,%esp
+
+    push $buff          # transformam in long numarul citit
+    call atoi_impl
+    addl $4,%esp
+    movl %eax,m
 
     # citim numarul de coloane
-    push $n
-    push $formatScanf
-    push fp
-    call fscanf
-    add $12,%esp
-    movl n,%eax
+    push $buff
+    push fd
+    call readf 
+    addl $8,%esp
+
+    push $buff          # transformam in long numarul citit
+    call atoi_impl
+    addl $4,%esp
+    movl %eax,n
+
     addl $2,%eax
     movl %eax,n_bordat
 
     # citim numarul de celule vii
-    push $p
-    push $formatScanf
-    push fp
-    call fscanf
-    add $12,%esp
+    push $buff
+    push fd
+    call readf 
+    addl $8,%esp
+
+    push $buff          # transformam in long numarul citit
+    call atoi_impl
+    addl $4,%esp
+    movl %eax,p
 
     # citim celulele vii (matricea)
     xor %ecx,%ecx
@@ -62,19 +180,27 @@ main:
         cmp p,%ecx
         je exit_for_p
 
-        push %ecx       # salvam valoarea lui ecx
+        push %ecx           # salvam valoarea lui ecx
 
-        push $x         # citim x
-        push $formatScanf
-        push fp
-        call fscanf
-        add $12,%esp
+        push $buff          # citim valoarea lui x
+        push fd
+        call readf 
+        addl $8,%esp
 
-        push $y         # citim y
-        push $formatScanf
-        push fp 
-        call fscanf
-        add $12,%esp
+        push $buff          # transformam valoarea lui x in long
+        call atoi_impl
+        addl $4,%esp
+        movl %eax,x
+
+        push $buff          # citim valoarea lui y
+        push fd
+        call readf 
+        addl $8,%esp
+
+        push $buff          # transformam valoarea lui y in long
+        call atoi_impl
+        addl $4,%esp
+        movl %eax,y
 
         pop %ecx        # restauram valoarea lui ecx
 
@@ -89,13 +215,21 @@ main:
         jmp for_p
 
 exit_for_p:
-
     # citim k (numarul de evolutii)
-    push $k
-    push $formatScanf
-    push fp
-    call fscanf
-    addl $12,%esp
+    push $buff
+    push fd
+    call readf 
+    addl $8,%esp
+
+    push $buff          # transformam in long numarul citit
+    call atoi_impl
+    addl $4,%esp
+    movl %eax,k
+
+    # inchidem fisierul de intrare
+    movl $6,%eax
+    movl fd,%ebx
+    int $0x80
 
     # calculam evolutiile
     lea matrix,%esi
@@ -217,21 +351,18 @@ exit_for_p:
         jmp for_evolutii
 
 exit_for_evolutii:
-    # inchidem fisierul de intrare
-    push fp
-    call fclose 
-    addl $4,%esp
-
     # deschidem fisierul de iesire
-    push $write_mode
-    push $fileout
-    call fopen
-    addl $8,%esp
-    movl %eax,fp
+    movl $5,%eax
+    movl $fileout, %ebx
+    movl $0x241,%ecx     # 0x241 reprezinta flag-urile: O_CREAT, O_WRONLY si O_TRUNC
+    movl $0666,%edx      # permisiuni read-write pentru owner/grup/altii
+    int $0x80
+    movl %eax,fd
 
     # afisam matricea
     movl $1,lineIndex
     lea matrix,%esi
+    lea buff,%edi
     for_lines:
         movl lineIndex,%ecx
         cmp m,%ecx
@@ -252,28 +383,37 @@ exit_for_evolutii:
             # afisam elementul din matrice
 
             movl (%esi,%eax,4),%ebx
-            push %ebx
-            push $formatPrintf
-            push fp
-            call fprintf 
+
+            push %ebx               # transformam elementul in cod ASCII
+            call cif_to_ascii
+            addl $4,%esp
+
+            movb %al,0(%edi)        # punem in buffer codul ASCII al elem si spatiu
+            movb $0x20,1(%edi)
+
+            push $2                 # afisam 2 bytes din buffer
+            push $buff 
+            push fd 
+            call writef 
             addl $12,%esp
 
             incl colIndex
             jmp for_columns
     cont_for_lines:
-        push $endl
-        push fp
-        call fprintf
-        add $8,%esp
+        push $1                 # afisam '\n'
+        push $endl 
+        push fd 
+        call writef 
+        addl $12,%esp
+
         incl lineIndex
         jmp for_lines
 
-
 et_exit:
-    # inchidem fisierul de iesire
-    push fp
-    call fclose
-    addl $4,%esp
+    # inchidem fisierul
+    movl $6,%eax
+    movl fd,%ebx 
+    int $0x80
 
     movl $1,%eax
     xor %ebx,%ebx
