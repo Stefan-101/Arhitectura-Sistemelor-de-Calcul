@@ -437,6 +437,10 @@ exit_while_decript:
     addl $8,%esp
 
 et_exit:
+	push $0
+	call fflush
+	addl $4,%esp
+	
     movl $1,%eax
     xor %ebx,%ebx
     int $0x80
