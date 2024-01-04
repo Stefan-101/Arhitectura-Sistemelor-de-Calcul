@@ -275,6 +275,10 @@ et_exit:
     call fclose
     addl $4,%esp
 
+    pushl $0
+    call fflush
+    addl $4, %esp
+
     movl $1,%eax
     xor %ebx,%ebx
     int $0x80
